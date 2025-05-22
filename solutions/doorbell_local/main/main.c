@@ -49,6 +49,12 @@ static int stop_cli(int argc, char **argv)
     return 0;
 }
 
+static int close_data_ch_cli(int argc, char **argv)
+{
+    close_data_channel(argc > 1 ? atoi(argv[1]) : 0);
+    return 0;
+}
+
 static int cmd_cli(int argc, char **argv)
 {
     send_cmd(argc > 1 ? argv[1] : "ring");
@@ -128,6 +134,11 @@ static int init_console()
             .command = "cmd",
             .help = "Send command (ring etc)\n",
             .func = cmd_cli,
+        },
+        {
+            .command = "close",
+            .help = "Close data channel\n",
+            .func = close_data_ch_cli,
         },
         {
             .command = "i",

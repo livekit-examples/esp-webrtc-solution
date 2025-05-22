@@ -13,6 +13,7 @@
 #include "common.h"
 #include "esp_log.h"
 #include "esp_webrtc_defaults.h"
+#include "esp_peer_default.h"
 #include "media_lib_os.h"
 
 #define TAG "VIDEO_CALL"
@@ -30,6 +31,9 @@
 #define VIDEO_CALL_CALL_ACCEPTED_CMD "ACCEPT_CALL"
 #define VIDEO_CALL_CALL_DENIED_CMD   "DENY_CALL"
 #define VIDEO_CALL_TIMEOUT           30000
+
+#define VIDEO_CALL_DATA_CH_SEND_CACHE_SIZE (400 * 1024)
+#define VIDEO_CALL_DATA_CH_RECV_CACHE_SIZE (400 * 1024)
 
 #define SAME_STR(a, b) (strncmp(a, b, sizeof(b) - 1) == 0)
 #define SEND_CMD(webrtc, cmd) \
@@ -206,6 +210,13 @@ int start_webrtc(char *url)
     monitor_key = true;
     media_lib_thread_handle_t key_thread;
     media_lib_thread_create_from_scheduler(&key_thread, "Key", key_monitor_thread, NULL);
+    // Set data channel size for video packets
+    esp_peer_default_cfg_t peer_default_cfg = {
+        .data_ch_cfg = {
+            .send_cache_size = VIDEO_CALL_DATA_CH_SEND_CACHE_SIZE,
+            .recv_cache_size = VIDEO_CALL_DATA_CH_RECV_CACHE_SIZE,
+        }
+    };
 
     esp_webrtc_cfg_t cfg = {
         .peer_cfg = {
@@ -224,6 +235,8 @@ int start_webrtc(char *url)
             .enable_data_channel = DATA_CHANNEL_ENABLED,
             .no_auto_reconnect = true,       // No auto connect peer when signaling connected
             .video_over_data_channel = true, // MJPEG video transfer over data channel
+            .extra_cfg = &peer_default_cfg,
+            .extra_size = sizeof(peer_default_cfg),
         },
         .signaling_cfg = {
             .signal_url = url,

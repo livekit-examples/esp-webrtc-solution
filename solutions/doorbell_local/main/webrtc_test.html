@@ -236,6 +236,7 @@
         let ringSound = null;
         let isRinging = false;
         let pendingCandidates = [];
+        let dataChannels = [];
 
         const localVideo = document.getElementById('localVideo');
         const remoteVideo = document.getElementById('remoteVideo');
@@ -483,6 +484,22 @@
             try {
                 peerConnection = new RTCPeerConnection(configuration);
                 
+                // Create two data channels
+                const dataChannel1 = peerConnection.createDataChannel('channel1');
+                const dataChannel2 = peerConnection.createDataChannel('channel2');
+                
+                // Setup data channel 1
+                setupDataChannel(dataChannel1);
+                
+                // Setup data channel 2
+                setupDataChannel(dataChannel2);
+                
+                // Handle incoming data channels
+                peerConnection.ondatachannel = (event) => {
+                    console.log('Received data channel:', event.channel.label);
+                    setupDataChannel(event.channel);
+                };
+
                 // Monitor ICE connection state
                 peerConnection.oniceconnectionstatechange = () => {
                     console.log('ICE Connection State:', peerConnection.iceConnectionState);
@@ -712,6 +729,79 @@
                 localVideoBox.addEventListener('transitionend', handleTransitionEnd);
             });
         };
+
+
+        function getCountChar(count) {
+            // Use ASCII 33-126 range (printable characters) to avoid null character
+            const asciiValue = ((count & 0xFF) % 94) + 33; // This ensures value is between 33-126
+            return String.fromCharCode(asciiValue);
+        }
+
+        // Add this new function after createPeerConnection
+        function setupDataChannel(channel) {
+            let messageCount = 0;
+            
+            // Store channel handle in the array
+            dataChannels.push(channel);
+            console.log(`Data channel ${channel.label} added to dataChannels array. Access via dataChannels[${dataChannels.length-1}]`);
+            
+            // Function to create 8KB message
+            function createLargeMessage(count) {
+                const header = `This is the ${count} on ${channel.label}\n`;
+                const remainingSize = 8192 - header.length; // 8KB - header length
+                const padding = getCountChar(count).repeat(remainingSize);
+                return header + padding;
+            }
+            
+            channel.onopen = () => {
+                console.log(`Data channel ${channel.label} opened`);
+                // Start sending messages every 2 seconds
+                setInterval(() => {
+                    if (channel.readyState === 'open') {
+                        messageCount++;
+                        const message = createLargeMessage(messageCount);
+                        channel.send(message);
+                        console.log(`Sent on ${channel.label}: ${message.length} bytes`);
+                    }
+                }, 2000);
+            };
+
+            channel.onclose = () => {
+                console.log(`Data channel ${channel.label} closed`);
+                // Remove channel from dataChannels array
+                const index = dataChannels.indexOf(channel);
+                if (index > -1) {
+                    dataChannels.splice(index, 1);
+                    console.log(`Data channel ${channel.label} removed from dataChannels array`);
+                }
+            };
+
+            channel.onerror = (error) => {
+                console.error(`Data channel ${channel.label} error:`, error);
+            };
+
+            channel.onmessage = (event) => {
+                // Get only the first line (up to the newline character)
+                const firstLine = event.data.split('\n')[0];
+                console.log(`Received ${firstLine} ${event.data.length} bytes`);
+                
+                // Extract only the count number using regex
+                const countMatch = firstLine.match(/Send to .* count (\d+)/);
+                const sendCount = countMatch ? countMatch[1] : 0;
+                const expectedChar = getCountChar(sendCount);
+                const remainingData = event.data.substring(firstLine.length + 1); // +1 for the newline
+                // Check if all characters in remaining data match the expected pattern
+                const allMatch = remainingData.split('').every(char => char === expectedChar);
+                if (!allMatch) {
+                    console.error(`Pattern verification expected all characters to be: ${expectedChar})`);
+                    // Log first 10 characters that don't match
+                    const mismatches = remainingData.split('').slice(0, 10).map(char => 
+                        `${char} (ASCII ${char.charCodeAt(0)})`
+                    );
+                    console.error(`First 10 received characters: ${mismatches.join(', ')}`);
+                }
+            };
+        }
     </script>
 </body>
 </html> 

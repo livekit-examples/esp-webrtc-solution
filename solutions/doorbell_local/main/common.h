@@ -53,6 +53,11 @@ int stop_webrtc(void);
  */
 void send_cmd(char *cmd);
 
+/**
+ * @brief  Close data channel according channel index
+ */
+int close_data_channel(int idx);
+
 #ifdef __cplusplus
 }
 #endif

@@ -50,7 +50,7 @@ extern "C" {
 /**
  * @brief  Whether enable data channel
  */
-#define DATA_CHANNEL_ENABLED (false)
+#define DATA_CHANNEL_ENABLED (true)
 
 #if CONFIG_IDF_TARGET_ESP32P4
 /**

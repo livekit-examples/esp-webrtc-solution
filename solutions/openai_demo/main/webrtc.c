@@ -463,6 +463,16 @@ static int webrtc_event_handler(esp_webrtc_event_t *event, void *ctx)
 {
     printf("====================Event %d======================\n", event->type);
     if (event->type == ESP_WEBRTC_EVENT_DATA_CHANNEL_CONNECTED) {
+        // As ESP32 act as SCTP server, it does not create data channel automatically
+        // Here manually create one data channel
+        esp_peer_data_channel_cfg_t cfg = {
+            .label = "esp_channel",
+        };
+        esp_peer_handle_t peer_handle = NULL;
+        esp_webrtc_get_peer_connection(webrtc, &peer_handle);
+        esp_peer_create_data_channel(peer_handle, &cfg);
+    }
+    if (event->type == ESP_WEBRTC_EVENT_DATA_CHANNEL_OPENED) {
         send_response("You are helpful and have some tools installed. In the tools you have the ability to control a light bulb and change speaker volume. Say 'How can I help?");
         send_function_desc();
     }
@@ -536,6 +546,7 @@ int start_webrtc(void)
             .audio_dir = ESP_PEER_MEDIA_DIR_SEND_RECV,
             .enable_data_channel = DATA_CHANNEL_ENABLED,
             .on_custom_data = webrtc_data_handler,
+            .manual_ch_create = true, // Disable esp_peer create data channel automatically
             .extra_cfg = &peer_cfg,
             .extra_size = sizeof(peer_cfg),
         },

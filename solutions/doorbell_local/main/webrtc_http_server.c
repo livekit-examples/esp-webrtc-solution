@@ -446,8 +446,6 @@ static int webrtc_http_server_deinit(esp_peer_signaling_handle_t sig)
                 free(msg);
             }
         }
-        vQueueDelete(signaling_queue);
-        signaling_queue = NULL;
     }
     if (event_stream_connected) {
         event_stream_stopping = true;
@@ -456,6 +454,10 @@ static int webrtc_http_server_deinit(esp_peer_signaling_handle_t sig)
         while (event_stream_connected) {
             vTaskDelay(pdMS_TO_TICKS(100));
         }
+    }
+    if (signaling_queue) {
+        vQueueDelete(signaling_queue);
+        signaling_queue = NULL;
     }
     ESP_LOGI(TAG, "End to stop https server");
     return 0;
