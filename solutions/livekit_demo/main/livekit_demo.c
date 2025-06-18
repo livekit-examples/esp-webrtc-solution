@@ -33,7 +33,7 @@ int join_room()
     // and pass it to the room_connect function. To create a sandbox to easily run
     // this demo, see this guide: https://docs.livekit.io/home/cloud/sandbox/
     livekit_sandbox_res_t details;
-    if (!livekit_sandbox_generate(LK_SANDBOX_ID, &details)) {
+    if (!livekit_sandbox_generate(LK_SANDBOX_ID, ROOM_NAME, PARTICIPANT_NAME, &details)) {
         ESP_LOGE(TAG, "Failed to generate sandbox token");
         return -1;
     }
